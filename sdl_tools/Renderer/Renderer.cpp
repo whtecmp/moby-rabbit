@@ -119,6 +119,35 @@ Animation Renderer::loadAnimation(std::initializer_list<pair<string, const SDL_R
     return Animation(animation->cyclic_begin(), msPerFrame);
 }
 
+Animation Renderer::loadAnimationFrames(const vector<string>& paths, int msPerFrame, Error& err) const {
+    if (paths.empty()) {
+        err = Error::New("Animation requires at least one frame");
+        return {};
+    }
+
+    list<Texture*> frames;
+    for (const string& path : paths) {
+        Texture* next = loadTexture(path, err);
+        if (err.status == failure) {
+            break;
+        }
+        frames.push_back(next);
+    }
+
+    if (err.status == failure) {
+        for (Texture* frame : frames) {
+            delete frame;
+        }
+        return {};
+    }
+
+    auto animation = new CyclicList<Texture*>();
+    for (Texture* frame : frames) {
+        animation->push_back(frame);
+    }
+    return Animation(animation->cyclic_begin(), msPerFrame);
+}
+
 void Renderer::setDrawColor(Uint8 r, Uint8 g, Uint8 b, Uint8 a) const {
     SDL_SetRenderDrawColor(renderer, r, g, b, a);
 }
@@ -127,7 +156,7 @@ void Renderer::clear() const {
     SDL_RenderClear(renderer);
 }
 
-void Renderer::copy(Texture *texture, const Vector& position, Error& err) const {
+void Renderer::copy(Texture *texture, const Vector& position, Error& err, bool flipHorizontal) const {
     if (texture == nullptr) {
         err = Error::New("Texture is null");
         return;
@@ -145,7 +174,8 @@ void Renderer::copy(Texture *texture, const Vector& position, Error& err) const 
     }
     dst.x = static_cast<int>(position[0]);
     dst.y = static_cast<int>(position[1]);
-    if (SDL_RenderCopy(renderer, texture->texture, texture->getScope(), &dst)) {
+    if (SDL_RenderCopyEx(renderer, texture->texture, texture->getScope(), &dst, 0.0, nullptr,
+                         flipHorizontal ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE)) {
         err = Error::New(string("Error in SDL_RenderCopy: ") + SDL_GetError());
     }
 }

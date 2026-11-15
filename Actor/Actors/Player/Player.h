@@ -5,25 +5,40 @@
 #ifndef GAME_PLAYER_H
 #define GAME_PLAYER_H
 #include "Actor/Actor.h"
+#include "Actor/Actors/Level/Level.h"
 #include "State/State.h"
 #include "Config/Config.h"
 using namespace std;
 
 
-// The single player-controlled actor. Moves with the arrow keys (KEYBOARD)
-// or the D-pad (GAMEPAD), and doubles as the reference example of how an
-// actor loads animations, binds event actions and registers with State.
+// The player-controlled pirate mouse: runs left/right, jumps and attacks.
+// Keyboard (arrows or A/D, Space/Up/W jump, X/Z attack) and gamepad
+// (D-pad, A jump, X/B attack) both work at the same time.
+// position is the top-left of the 128x128 idle sprite box.
 class Player : public Actor {
     public:
-    Player(const string& name, const Vector& startPosition, Error& err);
+    Player(const string& name, const Vector& startPosition, Level* level, Error& err);
     ~Player();
 
-    Actor::eventAction genOnMoveStart(const Vector& direction);
-    Actor::eventAction genOnMoveStop(const Vector& direction);
+    void startJump();
+    void startAttack();
+    void update();
+    void setAnimation(const string& name);
 
     ControlMode controlMode;
     SDL_JoystickID controllerId;
+    Level* level;
+
     double speed;
+    double jumpSpeed;
+    double gravity;
+    bool leftHeld;
+    bool rightHeld;
+    bool onGround;
+    bool facingRight;
+    bool attacking;
+    Uint32 attackStartMs;
+    double prevFeetY;
 };
 
 

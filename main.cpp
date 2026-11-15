@@ -1,6 +1,7 @@
 #include <iostream>
 #include <SDL2/SDL.h>
 #include "Error.h"
+#include "Actor/Actors/Level/Level.h"
 #include "Actor/Actors/Player/Player.h"
 #include "SDL_Environment/SDL_Environment.h"
 #include "State/State.h"
@@ -20,7 +21,16 @@ int main()
     }
     State& state = State::get();
 
-    Player* player = new Player("player", Vector(960, 540), err);
+    Level* level = new Level();
+    state.registerActor("level", level, err);
+    if (err.status == failure) {
+        delete level;
+        cerr << "Failed to create level: " << err.message << endl;
+        State::destroy();
+        return 1;
+    }
+
+    Player* player = new Player("player", Vector(960, 300), level, err);
     if (err.status == failure) {
         delete player;
         cerr << "Failed to create player: " << err.message << endl;
