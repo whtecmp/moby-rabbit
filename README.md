@@ -12,7 +12,11 @@ Needs `cmake`, a C++20 compiler, `libsdl2-dev` and `libsdl2-image-dev`.
 ./cmake-build-debug/moby-rabbit    # run from the repo root so ./assets/ resolves
 ```
 
-Images and other assets are **not** stored in git. The code loads them at runtime
+Images and other assets are **not** stored in git. Get them from the team shared
+folder (`/home/box/shared`, ask the Animator which subfolder) and make them
+available as `./assets/` in the repo root, e.g.
+`ln -s /home/box/shared/<assets-folder> assets` (or copy the files in).
+Never commit them. The code loads them at runtime
 from `./assets/` (for example `./assets/player.png`). If the player sprite is
 missing the game still runs, the player just isn't drawn.
 
