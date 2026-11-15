@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(game)
+project(moby-rabbit)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -7,7 +7,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(SDL2 REQUIRED)
 find_package(SDL2_image REQUIRED)
 
-add_executable(game main.cpp
+add_executable(moby-rabbit main.cpp
         Matrix/Matrix.cpp
         Matrix/Matrix.h
         Vector/Vector.cpp
@@ -33,24 +33,22 @@ add_executable(game main.cpp
         Actor/Actors/Player/Player.h
         Actor/Actors/View/View.cpp
         Actor/Actors/View/View.h
-        Actor/Actors/MiniMe/MiniMe.h
-        Actor/Actors/MiniMe/MiniMe.cpp
         utils/Utils.h
         utils/Utils.cpp
 )
 
-target_link_libraries(game
+target_link_libraries(moby-rabbit
         SDL2::SDL2
         SDL2_image::SDL2_image
 )
 
-target_include_directories(game PRIVATE
+target_include_directories(moby-rabbit PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_CURRENT_SOURCE_DIR}/sdl_tools
         ${CMAKE_CURRENT_SOURCE_DIR}/Error
 )
 
-target_compile_options(game PRIVATE
+target_compile_options(moby-rabbit PRIVATE
         -g
         -Wall
         -Wextra

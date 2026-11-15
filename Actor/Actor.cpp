@@ -13,7 +13,8 @@ Actor::Actor() :
     currentAnimation(),
     animations(),
     eventActions(),
-    onRender(nullptr)
+    onRender(nullptr),
+    onCollision(nullptr)
     {}
 
 Actor::~Actor() = default;

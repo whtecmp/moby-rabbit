@@ -4,8 +4,6 @@
 
 #include "State.h"
 #include "Actor/Actors/View/View.h"
-#include "Actor/Actors/Player/Player.h"
-#include "Actor/Actors/MiniMe/MiniMe.h"
 #include "utils/Utils.h"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_gamecontroller.h>
@@ -275,105 +273,37 @@ void State::startEventLoop() {
 }
 
 void State::collisionHandler() {
-    vector<Player*> players;
-    vector<MiniMe*> minimes;
-    for (pair<string, Actor*> nameActor : actors) {
+    Error err;
+    vector<pair<Actor*, SDL_Rect>> boxes;
+    for (const auto& nameActor : actors) {
         Actor* actor = nameActor.second;
-        if (actor == nullptr) {
+        if (actor == nullptr || actor == view) {
             continue;
         }
-        if (auto* player = dynamic_cast<Player*>(actor)) {
-            players.push_back(player);
+        int width = 0;
+        int height = 0;
+        if (!actor->getSize(width, height, err)) {
+            err = Error::Success();
             continue;
         }
-        if (auto* minime = dynamic_cast<MiniMe*>(actor)) {
-            minimes.push_back(minime);
-        }
+        SDL_Rect box{static_cast<int>(actor->position[0]), static_cast<int>(actor->position[1]), width, height};
+        boxes.emplace_back(actor, box);
     }
 
-    handleMiniMesCollisions(players, minimes);
-    handlePlayersCollisions(players);
-}
-
-void State::handleMiniMesCollisions(const vector<Player*>& players, const vector<MiniMe*>& minimes) {
-    Error err;
-    unordered_set<Actor*> toDelete;
-
-    for (Player* player : players) {
-        int playerWidth = 0;
-        int playerHeight = 0;
-        if (!player->getSize(playerWidth, playerHeight, err)) {
-            if (err.status == failure) {
-                cerr << "Player size error: " << err.message << endl;
-            }
-            continue;
-        }
-        for (MiniMe* minime : minimes) {
-            if (toDelete.contains(minime)) {
+    for (size_t i = 0; i < boxes.size(); ++i) {
+        for (size_t j = i + 1; j < boxes.size(); ++j) {
+            Actor* left = boxes[i].first;
+            Actor* right = boxes[j].first;
+            const SDL_Rect& a = boxes[i].second;
+            const SDL_Rect& b = boxes[j].second;
+            if (!rectanglesOverlap(a.x, a.y, a.w, a.h, b.x, b.y, b.w, b.h)) {
                 continue;
             }
-            int minimeWidth = 0;
-            int minimeHeight = 0;
-            if (!minime->getSize(minimeWidth, minimeHeight, err)) {
-                if (err.status == failure) {
-                    cerr << "MiniMe size error: " << err.message << endl;
-                }
-                continue;
+            if (left->onCollision != nullptr) {
+                left->onCollision(*left, *right);
             }
-            if (!rectanglesOverlap(player->position[0], player->position[1], playerWidth, playerHeight,
-                                   minime->position[0], minime->position[1], minimeWidth, minimeHeight)) {
-                continue;
-            }
-            int result = rpsResult(player->mode, minime->mode);
-            if (result == 0) {
-                continue;
-            }
-            if (result > 0) {
-                toDelete.insert(minime);
-            } else {
-                player->hp -= 1;
-                toDelete.insert(minime);
-            }
-        }
-    }
-    for (Actor* actor : toDelete) {
-        removeActor(actor);
-    }
-}
-
-void State::handlePlayersCollisions(const vector<Player*>& players) {
-    if (players.size() < 2) {
-        return;
-    }
-    Error err;
-    for (size_t i = 0; i < players.size(); ++i) {
-        Player* left = players[i];
-        int leftWidth = 0;
-        int leftHeight = 0;
-        if (!left->getSize(leftWidth, leftHeight, err)) {
-            if (err.status == failure) {
-                cerr << "Player size error: " << err.message << endl;
-            }
-            continue;
-        }
-        for (size_t j = i + 1; j < players.size(); ++j) {
-            Player* right = players[j];
-            int rightWidth = 0;
-            int rightHeight = 0;
-            if (!right->getSize(rightWidth, rightHeight, err)) {
-                if (err.status == failure) {
-                    cerr << "Player size error: " << err.message << endl;
-                }
-                continue;
-            }
-            if (rectanglesOverlap(left->position[0], left->position[1], leftWidth, leftHeight,
-                                  right->position[0], right->position[1], rightWidth, rightHeight)) {
-                int result = rpsResult(left->mode, right->mode);
-                if (result > 0) {
-                    right->hp -= 3;
-                } else if (result < 0) {
-                    left->hp -= 3;
-                }
+            if (right->onCollision != nullptr) {
+                right->onCollision(*right, *left);
             }
         }
     }

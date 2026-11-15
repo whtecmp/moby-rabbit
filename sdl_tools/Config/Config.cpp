@@ -8,7 +8,7 @@
 Config getDefaultConfig() {
     Config config{};
     config.sdlInitFlags = SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER;
-    config.windowTitle = "game";
+    config.windowTitle = "moby-rabbit";
     config.windowX = SDL_WINDOWPOS_CENTERED;
     config.windowY = SDL_WINDOWPOS_CENTERED;
     config.windowWidth = 1920;

@@ -11,7 +11,6 @@
 #include <map>
 #include <memory>
 #include <string>
-#include <functional>
 
 using namespace std;
 
@@ -57,6 +56,8 @@ public:
     map<string, string> animations;
     map<EventGroup, map<Uint32, eventAction>> eventActions;
     function<void(Actor&)> onRender;
+    // Called once per frame for every other actor whose bounding box overlaps this one.
+    function<void(Actor&, Actor&)> onCollision;
 };
 
 

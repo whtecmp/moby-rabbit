@@ -4,128 +4,57 @@
 
 #include "Player.h"
 #include "State/State.h"
-#include "Actor/Actors/MiniMe/MiniMe.h"
-#include "Texture/Texture.h"
 #include <SDL2/SDL_gamecontroller.h>
 #include <iostream>
 using namespace std;
 
-void onRenderPlayer(Player& player) {
-    if (player.hp <= 0) {
-        State::get().removeActor(&player);
-        return;
-    }
-    Uint32 nowMs = SDL_GetTicks();
-    if (nowMs - player.lastModeChangeMs < 3000) {
-        return;
-    }
-    Error err;
-    int width = 0;
-    int height = 0;
-    State& state = State::get();
-    if (!player.currentAnimation.empty()) {
-        auto actorAnimIt = player.animations.find(player.currentAnimation);
-        if (actorAnimIt != player.animations.end()) {
-            auto animIt = state.animations.find(actorAnimIt->second);
-            if (animIt != state.animations.end()) {
-                Animation& anim = animIt->second;
-                Texture* frame = *anim.iterator;
-                if (frame != nullptr) {
-                    const Vector* drawSize = frame->getDrawSize();
-                    if (drawSize != nullptr) {
-                        width = static_cast<int>((*drawSize)[0]);
-                        height = static_cast<int>((*drawSize)[1]);
-                    } else {
-                        frame->querySize(width, height, err);
-                        if (err.status == failure) {
-                            return;
-                        }
-                    }
-                }
-            }
-        }
-    }
+// Path is relative to the working directory. Assets are not stored in git.
+static const string playerSpritePath = "./assets/player.png";
 
-    if (state.view != nullptr) {
-        int viewWidth = state.view->width;
-        int viewHeight = state.view->height;
-        double x = player.position[0];
-        double y = player.position[1];
-        if (x + width < 0) {
-            player.position[0] = static_cast<double>(viewWidth);
-        } else if (x > viewWidth) {
-            player.position[0] = static_cast<double>(-width);
-        }
-        if (y + height < 0) {
-            player.position[1] = static_cast<double>(viewHeight);
-        } else if (y > viewHeight) {
-            player.position[1] = static_cast<double>(-height);
-        }
-    }
-
-    if (nowMs - player.lastSpawnMs < 800) {
-        return;
-    }
-    if (width <= 0 || height <= 0) {
-        width = 0;
-        height = 0;
-    }
-    int offsetX = width / 4;
-    int offsetY = height / 4;
-    SDL_Rect pos{
-        static_cast<int>(player.position[0]) + offsetX,
-        static_cast<int>(player.position[1]) + offsetY,
-        0,
-        0
-    };
-    player.lastSpawnMs = nowMs;
-    MiniMe* minime = new MiniMe(pos, player.mode, err);
-    if (err.status == failure) {
-        delete minime;
-    }
-}
-
-Actor::eventAction Player::genOnKeyDown(const Vector& v) {
-    return [this, v](Actor& actor, const SDL_Event& event) {
+Actor::eventAction Player::genOnMoveStart(const Vector& direction) {
+    return [this, direction](Actor& actor, const SDL_Event& event) {
         static_cast<void>(actor);
         static_cast<void>(event);
-        const Vector& current = this->velocity;
-        const bool movingX = current[0] != 0.0;
-        const bool movingY = current[1] != 0.0;
-        const bool wantsX = v[0] != 0.0;
-        const bool wantsY = v[1] != 0.0;
-        if ((movingX && wantsX) || (movingY && wantsY)) {
-            return;
+        if (direction[0] != 0.0) {
+            velocity[0] = direction[0] * speed;
         }
-        this->velocity = v;
+        if (direction[1] != 0.0) {
+            velocity[1] = direction[1] * speed;
+        }
+    };
+}
+
+Actor::eventAction Player::genOnMoveStop(const Vector& direction) {
+    return [this, direction](Actor& actor, const SDL_Event& event) {
+        static_cast<void>(actor);
+        static_cast<void>(event);
+        // Only stop if we are still moving in the released direction.
+        if (direction[0] != 0.0 && velocity[0] * direction[0] > 0.0) {
+            velocity[0] = 0.0;
+        }
+        if (direction[1] != 0.0 && velocity[1] * direction[1] > 0.0) {
+            velocity[1] = 0.0;
+        }
     };
 }
 
 Player::Player(const string& name, const Vector& startPosition, Error& err)
-    : Actor(), controlMode(KEYBOARD), controllerId(static_cast<SDL_JoystickID>(-1)),
-      mode(Rock), lastSpawnMs(0), lastModeChangeMs(0), hp(3) {
+    : Actor(), controlMode(KEYBOARD), controllerId(static_cast<SDL_JoystickID>(-1)), speed(5) {
     State& state = State::get();
     if (state.actors.contains(name)) {
         err = Error::New(string("Player with name ") + name + " already exists", Error::duplicate);
         return;
     }
 
-    state.loadAnimation("rock", {"./assets/rock.png"}, 0, err);
-    if (err.status == failure) {
-        return;
+    // A missing sprite is not fatal: the player still moves, it just isn't drawn.
+    Error animErr;
+    state.loadAnimation("player_idle", {playerSpritePath}, 0, animErr);
+    if (animErr.status == failure) {
+        cerr << "Player sprite not loaded (" << playerSpritePath << "): " << animErr.message << endl;
+    } else {
+        animations["idle"] = "player_idle";
+        currentAnimation = "idle";
     }
-    state.loadAnimation("paper", {"./assets/paper.png"}, 0, err);
-    if (err.status == failure) {
-        return;
-    }
-    state.loadAnimation("scissors", { "./assets/scissors.png"}, 0, err);
-    if (err.status == failure) {
-        return;
-    }
-    animations["rock"] = "rock";
-    animations["paper"] = "paper";
-    animations["scissors"] = "scissors";
-    currentAnimation = "rock";
 
     position = startPosition;
     acceleration = Vector(0, 0);
@@ -138,7 +67,7 @@ Player::Player(const string& name, const Vector& startPosition, Error& err)
             action(actor, event);
         };
     };
-    auto isControlledByThisGamepadDecorator = [this](const Actor::eventAction& action) {
+    auto isControlledByGamepadDecorator = [this](const Actor::eventAction& action) {
         return [this, action](Actor& actor, const SDL_Event& event) {
             if (controlMode != GAMEPAD) {
                 return;
@@ -150,70 +79,30 @@ Player::Player(const string& name, const Vector& startPosition, Error& err)
         };
     };
 
-
-    auto setRock = [this](Actor& actor, const SDL_Event& event) {
-        static_cast<void>(event);
-        Uint32 nowMs = SDL_GetTicks();
-        if (nowMs - lastModeChangeMs < 3000) {
-            return;
-        }
-        mode = Rock;
-        currentAnimation = "rock";
-        lastModeChangeMs = nowMs;
-    };
-    auto setPaper = [this](Actor& actor, const SDL_Event& event) {
-        static_cast<void>(event);
-        Uint32 nowMs = SDL_GetTicks();
-        if (nowMs - lastModeChangeMs < 3000) {
-            return;
-        }
-        mode = Paper;
-        currentAnimation = "paper";
-        lastModeChangeMs = nowMs;
-    };
-    auto setScissors = [this](Actor& actor, const SDL_Event& event) {
-        static_cast<void>(event);
-        Uint32 nowMs = SDL_GetTicks();
-        if (nowMs - lastModeChangeMs < 3000) {
-            return;
-        }
-        mode = Scissors;
-        currentAnimation = "scissors";
-        lastModeChangeMs = nowMs;
-    };
-
-    auto moveLeft = genOnKeyDown(Vector(-5, 0));
-    auto moveRight = genOnKeyDown(Vector(5, 0));
-    auto moveUp = genOnKeyDown(Vector(0, -5));
-    auto moveDown = genOnKeyDown(Vector(0, 5));
+    const Vector left(-1, 0);
+    const Vector right(1, 0);
+    const Vector up(0, -1);
+    const Vector down(0, 1);
 
     // Keyboard event handlers
-    eventActions[Actor::keyDown][SDLK_LEFT] = isControlledByKeyboardDecorator(moveLeft);
-    eventActions[Actor::keyDown][SDLK_RIGHT] = isControlledByKeyboardDecorator(moveRight);
-    eventActions[Actor::keyDown][SDLK_UP] = isControlledByKeyboardDecorator(moveUp);
-    eventActions[Actor::keyDown][SDLK_DOWN] = isControlledByKeyboardDecorator(moveDown);
-    eventActions[Actor::keyDown][SDLK_z] = isControlledByKeyboardDecorator(setRock);
-    eventActions[Actor::keyDown][SDLK_x] = isControlledByKeyboardDecorator(setPaper);
-    eventActions[Actor::keyDown][SDLK_c] = isControlledByKeyboardDecorator(setScissors);
+    eventActions[Actor::keyDown][SDLK_LEFT] = isControlledByKeyboardDecorator(genOnMoveStart(left));
+    eventActions[Actor::keyDown][SDLK_RIGHT] = isControlledByKeyboardDecorator(genOnMoveStart(right));
+    eventActions[Actor::keyDown][SDLK_UP] = isControlledByKeyboardDecorator(genOnMoveStart(up));
+    eventActions[Actor::keyDown][SDLK_DOWN] = isControlledByKeyboardDecorator(genOnMoveStart(down));
+    eventActions[Actor::keyUp][SDLK_LEFT] = isControlledByKeyboardDecorator(genOnMoveStop(left));
+    eventActions[Actor::keyUp][SDLK_RIGHT] = isControlledByKeyboardDecorator(genOnMoveStop(right));
+    eventActions[Actor::keyUp][SDLK_UP] = isControlledByKeyboardDecorator(genOnMoveStop(up));
+    eventActions[Actor::keyUp][SDLK_DOWN] = isControlledByKeyboardDecorator(genOnMoveStop(down));
 
     // Gamepad event handlers
-    eventActions[Actor::controllerButtonDown][SDL_CONTROLLER_BUTTON_DPAD_LEFT] = isControlledByThisGamepadDecorator(moveLeft);
-    eventActions[Actor::controllerButtonDown][SDL_CONTROLLER_BUTTON_DPAD_RIGHT] = isControlledByThisGamepadDecorator(moveRight);
-    eventActions[Actor::controllerButtonDown][SDL_CONTROLLER_BUTTON_DPAD_UP] = isControlledByThisGamepadDecorator(moveUp);
-    eventActions[Actor::controllerButtonDown][SDL_CONTROLLER_BUTTON_DPAD_DOWN] = isControlledByThisGamepadDecorator(moveDown);
-    eventActions[Actor::controllerButtonDown][SDL_CONTROLLER_BUTTON_A] = isControlledByThisGamepadDecorator(setRock);
-    eventActions[Actor::controllerButtonDown][SDL_CONTROLLER_BUTTON_B] = isControlledByThisGamepadDecorator(setPaper);
-    eventActions[Actor::controllerButtonDown][SDL_CONTROLLER_BUTTON_X] = isControlledByThisGamepadDecorator(setScissors);
-
-
-    eventActions[Actor::quit][0] = [](Actor& actor, const SDL_Event& event) {
-        cout << "Bye from player!" << endl;
-    };
-
-    onRender = [this](Actor& actor) {
-        static_cast<void>(actor);
-        onRenderPlayer(*this);
-    };
+    eventActions[Actor::controllerButtonDown][SDL_CONTROLLER_BUTTON_DPAD_LEFT] = isControlledByGamepadDecorator(genOnMoveStart(left));
+    eventActions[Actor::controllerButtonDown][SDL_CONTROLLER_BUTTON_DPAD_RIGHT] = isControlledByGamepadDecorator(genOnMoveStart(right));
+    eventActions[Actor::controllerButtonDown][SDL_CONTROLLER_BUTTON_DPAD_UP] = isControlledByGamepadDecorator(genOnMoveStart(up));
+    eventActions[Actor::controllerButtonDown][SDL_CONTROLLER_BUTTON_DPAD_DOWN] = isControlledByGamepadDecorator(genOnMoveStart(down));
+    eventActions[Actor::controllerButtonUp][SDL_CONTROLLER_BUTTON_DPAD_LEFT] = isControlledByGamepadDecorator(genOnMoveStop(left));
+    eventActions[Actor::controllerButtonUp][SDL_CONTROLLER_BUTTON_DPAD_RIGHT] = isControlledByGamepadDecorator(genOnMoveStop(right));
+    eventActions[Actor::controllerButtonUp][SDL_CONTROLLER_BUTTON_DPAD_UP] = isControlledByGamepadDecorator(genOnMoveStop(up));
+    eventActions[Actor::controllerButtonUp][SDL_CONTROLLER_BUTTON_DPAD_DOWN] = isControlledByGamepadDecorator(genOnMoveStop(down));
 
     if (!state.registerActor(name, this, err)) {
         return;

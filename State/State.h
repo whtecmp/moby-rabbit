@@ -18,8 +18,6 @@
 using namespace std;
 
 class View;
-class Player;
-class MiniMe;
 
 class State {
     public:
@@ -37,8 +35,6 @@ class State {
     // Methods
     void startEventLoop();
     void collisionHandler();
-    void handleMiniMesCollisions(const vector<Player*>& players, const vector<MiniMe*>& minimes);
-    void handlePlayersCollisions(const vector<Player*>& players);
     Animation loadAnimation(const string& name, std::initializer_list<string> paths, int msPerFrame, Error& err);
     Animation loadAnimation(const string& name, std::initializer_list<pair<string, const SDL_Rect*>> frames, int msPerFrame, Error& err);
     Animation loadAnimationNoDuplicate(const string& name, std::initializer_list<string> paths, int msPerFrame, Error& err);
