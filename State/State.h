@@ -61,8 +61,8 @@ class State {
     View* view;
     int fps;
     ControlMode controlMode;
-    vector<SDL_GameController*> controllers;
-    vector<SDL_JoystickID> controllerIds;
+    SDL_GameController* controller;
+    SDL_JoystickID controllerId;
 
     function<int(SDL_Event *)> pollEvent;
 

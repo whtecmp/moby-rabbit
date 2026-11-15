@@ -76,8 +76,8 @@ State::State(const Config& config, Error& err)
       view(nullptr),
       fps(config.fps),
       controlMode(config.controlMode),
-      controllers(),
-      controllerIds(),
+      controller(nullptr),
+      controllerId(static_cast<SDL_JoystickID>(-1)),
       pollEvent(config.pollEvent),
       deferActorMutations(false),
       pendingAddActors(),
@@ -89,38 +89,22 @@ State::State(const Config& config, Error& err)
         return;
     }
 
-    int requiredControllers = 0;
     if (controlMode == GAMEPAD) {
-        requiredControllers = 2;
-    } else {
-        requiredControllers = 1;
-    }
-
-    if (requiredControllers > 0) {
         const int numJoysticks = SDL_NumJoysticks();
-        for (int i = 0; i < numJoysticks && static_cast<int>(controllers.size()) < requiredControllers; ++i) {
+        for (int i = 0; i < numJoysticks; ++i) {
             if (!SDL_IsGameController(i)) {
                 continue;
             }
-            SDL_GameController* controller = SDL_GameControllerOpen(i);
+            controller = SDL_GameControllerOpen(i);
             if (controller == nullptr) {
                 err = Error::New(string("Failed to open game controller: ") + SDL_GetError());
-                break;
+                return;
             }
-            SDL_Joystick* joystick = SDL_GameControllerGetJoystick(controller);
-            SDL_JoystickID id = SDL_JoystickInstanceID(joystick);
-            controllers.push_back(controller);
-            controllerIds.push_back(id);
+            controllerId = SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(controller));
+            break;
         }
-        if (err.status == failure || static_cast<int>(controllers.size()) < requiredControllers) {
-            if (err.status == success) {
-                err = Error::New("Not enough game controllers found");
-            }
-            for (SDL_GameController* controller : controllers) {
-                SDL_GameControllerClose(controller);
-            }
-            controllers.clear();
-            controllerIds.clear();
+        if (controller == nullptr) {
+            err = Error::New("No game controller found");
             return;
         }
     }
@@ -155,11 +139,10 @@ State::~State() {
         }
         delete list;
     }
-    for (SDL_GameController* controller : controllers) {
+    if (controller != nullptr) {
         SDL_GameControllerClose(controller);
+        controller = nullptr;
     }
-    controllers.clear();
-    controllerIds.clear();
     actors.clear();
     delete env;
 }
