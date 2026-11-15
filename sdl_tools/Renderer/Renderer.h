@@ -13,6 +13,8 @@
 #include "Vector/Vector.h"
 #include <initializer_list>
 #include <utility>
+#include <vector>
+#include <string>
 
 using namespace std;
 
@@ -31,7 +33,8 @@ class Renderer {
     Animation loadAnimation(std::initializer_list<pair<string, const SDL_Rect*>> pathesScopes, int msPerFrame, Error& err) const;
     void setDrawColor(Uint8 r, Uint8 g, Uint8 b, Uint8 a) const;
     void clear() const;
-    void copy(Texture* texture, const Vector& position, Error& err) const;
+    void copy(Texture* texture, const Vector& position, Error& err, bool flipHorizontal = false) const;
+    Animation loadAnimationFrames(const vector<string>& paths, int msPerFrame, Error& err) const;
     void present() const;
     SDL_Renderer* renderer;
 };

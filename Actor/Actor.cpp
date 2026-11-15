@@ -11,6 +11,8 @@ Actor::Actor() :
     velocity(),
     acceleration(),
     currentAnimation(),
+    flipHorizontal(false),
+    drawOffset(0, 0),
     animations(),
     eventActions(),
     onRender(nullptr),

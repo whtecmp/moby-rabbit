@@ -87,7 +87,8 @@ State::State(const Config& config, Error& err)
         return;
     }
 
-    if (controlMode == GAMEPAD) {
+    {
+        // Keyboard is the default, but a connected gamepad always works too.
         const int numJoysticks = SDL_NumJoysticks();
         for (int i = 0; i < numJoysticks; ++i) {
             if (!SDL_IsGameController(i)) {
@@ -95,13 +96,16 @@ State::State(const Config& config, Error& err)
             }
             controller = SDL_GameControllerOpen(i);
             if (controller == nullptr) {
-                err = Error::New(string("Failed to open game controller: ") + SDL_GetError());
-                return;
+                if (controlMode == GAMEPAD) {
+                    err = Error::New(string("Failed to open game controller: ") + SDL_GetError());
+                    return;
+                }
+                continue;
             }
             controllerId = SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(controller));
             break;
         }
-        if (controller == nullptr) {
+        if (controller == nullptr && controlMode == GAMEPAD) {
             err = Error::New("No game controller found");
             return;
         }
@@ -195,7 +199,7 @@ void State::startEventLoop() {
         }
         err = Error::Success();
 
-        env->renderer->setDrawColor(16, 64, 32, 255);
+        env->renderer->setDrawColor(0, 70, 30, 255);
         env->renderer->clear();
 
         for (pair<string, Actor*> nameActor : actors) {
@@ -230,7 +234,7 @@ void State::startEventLoop() {
                     cerr << "Missing animation frame: " << animationName << endl;
                     continue;
                 }
-                env->renderer->copy(frame, actor->position - view->position, err);
+                env->renderer->copy(frame, actor->position + actor->drawOffset - view->position, err, actor->flipHorizontal);
                 if (err.status == failure) {
                     cerr << "Texture copy error: " << err.message << endl;
                 }
@@ -452,6 +456,31 @@ Animation State::loadAnimationNoDuplicate(const string& name, std::initializer_l
     }
     animations[name] = anim;
     return anim;
+}
+
+Animation State::loadAnimationFrames(const string& name, const vector<string>& paths, int msPerFrame, Error& err) {
+    const auto& animIt = animations.find(name);
+    if (animIt != animations.end()) {
+        return animIt->second;
+    }
+    Animation anim = env->renderer->loadAnimationFrames(paths, msPerFrame, err);
+    if (err.status == failure) {
+        return {};
+    }
+    animations[name] = anim;
+    return anim;
+}
+
+void State::restartAnimation(const string& name) {
+    auto animIt = animations.find(name);
+    if (animIt == animations.end()) {
+        return;
+    }
+    auto list = !animIt->second.iterator;
+    if (list == nullptr || list->empty()) {
+        return;
+    }
+    animIt->second.iterator = list->cyclic_begin();
 }
 
 void State::cleanupAnimations() {

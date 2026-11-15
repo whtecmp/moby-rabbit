@@ -23,7 +23,8 @@ missing the game still runs, the player just isn't drawn.
 | `main.cpp` | Entry point: creates `State`, one `Player`, runs the event loop. |
 | `State/` | Singleton game state (`State::make/get/destroy`). Owns the SDL environment, actors and loaded animations. `startEventLoop()` polls SDL events, dispatches them to actors, moves and draws actors, runs collisions, applies deferred actor adds/removes, and caps the frame rate. |
 | `Actor/Actor.*` | Base class for everything in the world: `position`/`velocity`/`acceleration`, named `animations`, `eventActions` (per event group and key/button), and `onRender` / `onCollision` callbacks. |
-| `Actor/Actors/Player/` | The single player-controlled actor, and the reference example of writing an actor. Arrow keys (keyboard) or D-pad (gamepad). |
+| `Actor/Actors/Player/` | The pirate mouse: run, jump, attack (no parry yet). Keyboard: arrows/A,D move, Space/Up/W jump, X/Z attack. Gamepad (works alongside keyboard): D-pad, A jump, X/B attack. Reference example of writing an actor. |
+| `Actor/Actors/Level/` | Placeholder level: ground and platforms drawn as white lines (one-way: land on top, jump up through). |
 | `Actor/Actors/View/` | The camera/viewport actor; actors are drawn relative to its position. Handles quit. |
 | `sdl_tools/` | Thin SDL wrappers: `Config` (defaults), `SDL_Environment` (init/shutdown), `Window`, `Renderer`, `Texture`. |
 | `Animation/` | Animation = cyclic list of texture frames + ms per frame. |

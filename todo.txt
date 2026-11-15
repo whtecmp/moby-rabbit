@@ -1,3 +1,3 @@
 1) Design the moby-rabbit game itself (actors, rules, levels).
-2) Add a real player sprite under ./assets/ (kept out of git).
+2) Parry, enemies and hit detection (attack animation has no hitbox yet).
 3) Clean up existing compiler warnings (Vector member init order, unused lambda params).

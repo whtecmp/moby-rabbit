@@ -53,6 +53,9 @@ public:
     Vector acceleration;
 
     string currentAnimation;
+    // Drawing tweaks: mirror the sprite and shift it relative to position.
+    bool flipHorizontal;
+    Vector drawOffset;
     map<string, string> animations;
     map<EventGroup, map<Uint32, eventAction>> eventActions;
     function<void(Actor&)> onRender;
