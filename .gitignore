@@ -1,7 +1,36 @@
+# Editors / tooling
 .idea/
-assets/
+.vscode/
+.cache/
 opencode.session
 \#*\#
 \.\#*
-.cache
-.cache/
+
+# Build output
+cmake-build-*/
+build/
+compile_commands.json
+
+# Game assets are kept out of git
+assets/
+
+# Images (never commit these)
+*.png
+*.PNG
+*.jpg
+*.JPG
+*.jpeg
+*.JPEG
+*.gif
+*.GIF
+*.bmp
+*.BMP
+*.webp
+*.WEBP
+*.tga
+*.tif
+*.tiff
+*.ico
+*.psd
+*.xcf
+*.svg
