@@ -54,6 +54,8 @@ class State {
     map<string, Animation> animations;
     SDL_Environment* env;
     bool running;
+    // While true, actors marked pausable stop moving and animating.
+    bool paused;
     map<string, Actor*> actors;
     int animationCleanupEveryXFrames;
     View* view;

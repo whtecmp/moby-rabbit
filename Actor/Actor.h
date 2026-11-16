@@ -52,6 +52,13 @@ public:
     Vector velocity;
     Vector acceleration;
 
+    // When false the actor is not drawn (its logic still runs).
+    bool visible;
+    // Pausable actors stand still while State::paused is set.
+    bool pausable;
+    // Used instead of onRender while the game is paused (e.g. to keep drawing a level).
+    function<void(Actor&)> onPausedRender;
+
     string currentAnimation;
     // Drawing tweaks: mirror the sprite and shift it relative to position.
     bool flipHorizontal;

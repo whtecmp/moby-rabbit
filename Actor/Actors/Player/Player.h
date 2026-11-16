@@ -23,6 +23,13 @@ class Player : public Actor {
     void startJump();
     void startAttack();
     void update();
+    // Sword hitbox in world coordinates; false when not attacking.
+    bool attackBox(SDL_Rect& box) const;
+    // Where the body can be hit, in world coordinates.
+    SDL_Rect bodyBox() const;
+    // Loses one hit point (ignored while briefly invulnerable afterwards).
+    void takeHit();
+    void drawHealth() const;
     void updateCamera(int worldWidth);
     void setAnimation(const string& name);
 
@@ -40,6 +47,10 @@ class Player : public Actor {
     bool attacking;
     Uint32 attackStartMs;
     double prevFeetY;
+    int maxHp;
+    int hp;
+    Uint32 invulnerableUntilMs;
+    Vector startPosition;
 };
 
 

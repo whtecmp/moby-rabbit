@@ -61,6 +61,60 @@ void Player::startAttack() {
     setAnimation("attack");
 }
 
+bool Player::attackBox(SDL_Rect& box) const {
+    if (!attacking) {
+        return false;
+    }
+    const int y = static_cast<int>(position[1]) + 16;
+    const int h = bodySize - 16;
+    if (facingRight) {
+        box = {static_cast<int>(position[0]) + bodyRight, y, attackExtraWidth + bodySize - bodyRight, h};
+    } else {
+        box = {static_cast<int>(position[0]) - attackExtraWidth, y, attackExtraWidth + bodyLeft, h};
+    }
+    return true;
+}
+
+SDL_Rect Player::bodyBox() const {
+    return {static_cast<int>(position[0]) + bodyLeft, static_cast<int>(position[1]) + 32,
+            bodyRight - bodyLeft, bodySize - 32};
+}
+
+void Player::takeHit() {
+    const Uint32 now = SDL_GetTicks();
+    if (now < invulnerableUntilMs) {
+        return;
+    }
+    hp--;
+    if (hp <= 0) {
+        // TODO: play a dying animation once it exists. For now start over.
+        hp = maxHp;
+        position = startPosition;
+        velocity = Vector(0, 0);
+        State::get().view->position[0] = 0;
+        invulnerableUntilMs = now + 1500;
+        return;
+    }
+    invulnerableUntilMs = now + 1500;
+    velocity[1] = -10;
+    onGround = false;
+}
+
+void Player::drawHealth() const {
+    State& state = State::get();
+    SDL_Renderer* renderer = state.env->renderer->renderer;
+    for (int i = 0; i < maxHp; ++i) {
+        SDL_Rect r{30 + i * 50, 30, 40, 40};
+        if (i < hp) {
+            state.env->renderer->setDrawColor(220, 30, 40, 255);
+            SDL_RenderFillRect(renderer, &r);
+        } else {
+            state.env->renderer->setDrawColor(90, 20, 25, 255);
+            SDL_RenderDrawRect(renderer, &r);
+        }
+    }
+}
+
 // Keeps the player near the screen centre; the view only moves once he leaves the
 // slack zone, and never shows anything outside the level.
 void Player::updateCamera(int worldWidth) {
@@ -125,6 +179,10 @@ void Player::update() {
 
     updateCamera(worldWidth);
 
+    // Blink while invulnerable after a hit.
+    visible = SDL_GetTicks() >= invulnerableUntilMs || (SDL_GetTicks() / 100) % 2 == 0;
+    drawHealth();
+
     // Pick the animation and where to draw it.
     drawOffset = Vector(0, 0);
     flipHorizontal = !facingRight;
@@ -152,7 +210,8 @@ void Player::update() {
 Player::Player(const string& name, const Vector& startPosition, Level* level, Error& err)
     : Actor(), controlMode(KEYBOARD), controllerId(static_cast<SDL_JoystickID>(-1)), level(level),
       speed(8), jumpSpeed(21), gravity(0.9), leftHeld(false), rightHeld(false), onGround(false),
-      facingRight(true), attacking(false), attackStartMs(0), prevFeetY(0) {
+      facingRight(true), attacking(false), attackStartMs(0), prevFeetY(0),
+      maxHp(3), hp(3), invulnerableUntilMs(0), startPosition(startPosition) {
     State& state = State::get();
     if (state.actors.contains(name)) {
         err = Error::New(string("Player with name ") + name + " already exists", Error::duplicate);

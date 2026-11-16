@@ -25,6 +25,7 @@ Level::~Level() = default;
 void Level::load(int levelNumber) {
     number = levelNumber;
     lines.clear();
+    bugs.clear();
     // Ground first, then platforms to run along and jump between.
     lines.push_back({0, 900, width, thickness});
     // One block of platforms is repeated along the level.
@@ -35,6 +36,8 @@ void Level::load(int levelNumber) {
         for (const SDL_Rect& r : block) {
             lines.push_back({r.x + offset, r.y, r.w, r.h});
         }
+        bugs.push_back({offset + 1000.0, offset + 1500.0, 900});
+        bugs.push_back({offset + 820.0, offset + 1090.0, 600});
     }
 }
 
