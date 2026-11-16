@@ -21,7 +21,7 @@ static const int attackExtraWidth = 64;
 static const int bodyLeft = 32;   // horizontal extent of the body used for standing on lines
 static const int bodyRight = 96;
 static const int feetOffset = 127;
-static const int attackMs = 860;
+static const int attackMs = 500;
 static const int worldWidth = 1920;
 
 static vector<string> framePaths(const string& dir, int from, int to) {
