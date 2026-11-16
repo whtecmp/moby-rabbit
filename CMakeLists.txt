@@ -37,6 +37,12 @@ add_executable(moby-rabbit main.cpp
         Actor/Actors/Bug/Bug.h
         Actor/Actors/Level/Level.cpp
         Actor/Actors/Level/Level.h
+        Game/Game.cpp
+        Game/Game.h
+        Save/Save.cpp
+        Save/Save.h
+        utils/Text.cpp
+        utils/Text.h
         utils/Utils.h
         utils/Utils.cpp
 )

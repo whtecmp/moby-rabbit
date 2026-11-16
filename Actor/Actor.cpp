@@ -10,6 +10,7 @@ Actor::Actor() :
     position(),
     velocity(),
     acceleration(),
+    active(true),
     visible(true),
     pausable(false),
     onPausedRender(nullptr),

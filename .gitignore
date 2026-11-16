@@ -6,6 +6,9 @@ opencode.session
 \#*\#
 \.\#*
 
+# Local save file
+save.txt
+
 # Build output
 cmake-build-*/
 build/

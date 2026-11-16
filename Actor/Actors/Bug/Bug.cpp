@@ -16,6 +16,10 @@ Bug::Bug(const string& name, double minX, double maxX, double feetY, Player* pla
         update();
         draw();
     };
+    onPausedRender = [this](Actor& actor) {
+        static_cast<void>(actor);
+        draw();
+    };
     State::get().registerActor(name, this, err);
 }
 
