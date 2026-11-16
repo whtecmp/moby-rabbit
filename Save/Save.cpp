@@ -4,12 +4,17 @@
 #include <cstdlib>
 using namespace std;
 
-int loadUnlockedLevel(const string& path) {
+static string trim(string s) {
+    s.erase(remove_if(s.begin(), s.end(), ::isspace), s.end());
+    return s;
+}
+
+SaveData loadSave(const string& path) {
+    SaveData data;
     ifstream in(path);
     if (!in) {
-        return 1;
+        return data;
     }
-    int unlocked = 1;
     string line;
     while (getline(in, line)) {
         if (line.empty() || line[0] == '#') {
@@ -19,20 +24,37 @@ int loadUnlockedLevel(const string& path) {
         if (eq == string::npos) {
             continue;
         }
-        string key = line.substr(0, eq);
-        key.erase(remove_if(key.begin(), key.end(), ::isspace), key.end());
+        const string key = trim(line.substr(0, eq));
+        const string value = trim(line.substr(eq + 1));
         if (key == "unlocked_level") {
-            unlocked = atoi(line.c_str() + eq + 1);
+            data.unlockedLevel = atoi(value.c_str());
+        } else if (key == "fullscreen") {
+            data.fullscreen = value == "1" || value == "true";
+        } else if (key == "controls") {
+            data.gamepad = value == "gamepad";
         }
     }
-    return clamp(unlocked, 1, maxLevel);
+    data.unlockedLevel = clamp(data.unlockedLevel, 1, maxLevel);
+    return data;
 }
 
-void saveUnlockedLevel(const string& path, int unlockedLevel) {
+void writeSave(const string& path, const SaveData& data) {
     ofstream out(path, ios::trunc);
     if (!out) {
         return;
     }
     out << "# moby-rabbit save file (edit by hand if you like)\n";
-    out << "unlocked_level=" << clamp(unlockedLevel, 1, maxLevel) << "\n";
+    out << "unlocked_level=" << clamp(data.unlockedLevel, 1, maxLevel) << "\n";
+    out << "fullscreen=" << (data.fullscreen ? 1 : 0) << "\n";
+    out << "controls=" << (data.gamepad ? "gamepad" : "keyboard") << "\n";
+}
+
+int loadUnlockedLevel(const string& path) {
+    return loadSave(path).unlockedLevel;
+}
+
+void saveUnlockedLevel(const string& path, int unlockedLevel) {
+    SaveData data = loadSave(path);
+    data.unlockedLevel = unlockedLevel;
+    writeSave(path, data);
 }
