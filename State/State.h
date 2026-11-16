@@ -57,6 +57,7 @@ class State {
     map<string, Actor*> actors;
     int animationCleanupEveryXFrames;
     View* view;
+    SDL_Color background;
     int fps;
     ControlMode controlMode;
     SDL_GameController* controller;

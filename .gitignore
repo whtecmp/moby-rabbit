@@ -12,6 +12,7 @@ build/
 compile_commands.json
 
 # Game assets are kept out of git
+assets
 assets/
 
 # Images (never commit these)

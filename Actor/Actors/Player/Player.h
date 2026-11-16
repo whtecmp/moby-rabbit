@@ -23,6 +23,7 @@ class Player : public Actor {
     void startJump();
     void startAttack();
     void update();
+    void updateCamera(int worldWidth);
     void setAnimation(const string& name);
 
     ControlMode controlMode;

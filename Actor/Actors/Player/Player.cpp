@@ -22,7 +22,9 @@ static const int bodyLeft = 32;   // horizontal extent of the body used for stan
 static const int bodyRight = 96;
 static const int feetOffset = 127;
 static const int attackMs = 500;
-static const int worldWidth = 1920;
+static const int screenWidth = 1920;
+// The player may drift this far from the screen centre before the view follows.
+static const int centerSlack = 160;
 
 static vector<string> framePaths(const string& dir, int from, int to) {
     vector<string> paths;
@@ -59,6 +61,27 @@ void Player::startAttack() {
     setAnimation("attack");
 }
 
+// Keeps the player near the screen centre; the view only moves once he leaves the
+// slack zone, and never shows anything outside the level.
+void Player::updateCamera(int worldWidth) {
+    State& state = State::get();
+    if (state.view == nullptr) {
+        return;
+    }
+    const double centerX = position[0] + bodySize / 2.0;
+    double viewX = state.view->position[0];
+    const double mid = screenWidth / 2.0;
+    if (centerX - viewX > mid + centerSlack) {
+        viewX = centerX - mid - centerSlack;
+    } else if (centerX - viewX < mid - centerSlack) {
+        viewX = centerX - mid + centerSlack;
+    }
+    const double maxViewX = worldWidth > screenWidth ? worldWidth - screenWidth : 0;
+    if (viewX > maxViewX) viewX = maxViewX;
+    if (viewX < 0) viewX = 0;
+    state.view->position[0] = viewX;
+}
+
 // Runs every frame after State has applied velocity to position.
 void Player::update() {
     if (attacking && SDL_GetTicks() - attackStartMs >= static_cast<Uint32>(attackMs)) {
@@ -77,6 +100,7 @@ void Player::update() {
         facingRight = dir > 0;
     }
     if (position[0] < 0) position[0] = 0;
+    const int worldWidth = level != nullptr ? level->width : screenWidth;
     if (position[0] > worldWidth - bodySize) position[0] = worldWidth - bodySize;
 
     // Land on a line only when falling through its top surface.
@@ -98,6 +122,8 @@ void Player::update() {
         }
     }
     prevFeetY = position[1] + feetOffset;
+
+    updateCamera(worldWidth);
 
     // Pick the animation and where to draw it.
     drawOffset = Vector(0, 0);

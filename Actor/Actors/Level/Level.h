@@ -12,6 +12,14 @@ class Level : public Actor {
     Level();
     ~Level();
 
+    // Rebuilds the platforms (and colours) for level number 1-10.
+    void load(int number);
+    int number;
+    // Total width of the level in pixels; its left end is x=0, its right end is x=width.
+    int width;
+    SDL_Color backgroundColor;
+    SDL_Color lineColor;
+
     // Thickness of the drawn lines in pixels.
     int thickness;
     // Each rect is one line; rect.y is the top surface actors stand on.
