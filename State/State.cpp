@@ -69,6 +69,7 @@ State::State(const Config& config, Error& err)
     : animations(),
       env(nullptr),
       running(true),
+      paused(false),
       actors(),
       animationCleanupEveryXFrames(1000),
       view(nullptr),
@@ -206,10 +207,20 @@ void State::startEventLoop() {
         for (pair<string, Actor*> nameActor : actors) {
             Actor* actor = nameActor.second;
 
-            actor->position = actor->position + actor->velocity;
-            actor->velocity = actor->velocity + actor->acceleration;
-            if (actor->onRender != nullptr) {
+            const bool frozen = paused && actor->pausable;
+            if (!frozen) {
+                actor->position = actor->position + actor->velocity;
+                actor->velocity = actor->velocity + actor->acceleration;
+            }
+            if (frozen) {
+                if (actor->onPausedRender != nullptr) {
+                    actor->onPausedRender(*actor);
+                }
+            } else if (actor->onRender != nullptr) {
                 actor->onRender(*actor);
+            }
+            if (!actor->visible) {
+                continue;
             }
 
             string cur = actor->currentAnimation;
@@ -239,7 +250,9 @@ void State::startEventLoop() {
                 if (err.status == failure) {
                     cerr << "Texture copy error: " << err.message << endl;
                 }
-                if (anim.msPerFrame <= 0) {
+                if (frozen) {
+                    // Animations hold still while paused.
+                } else if (anim.msPerFrame <= 0) {
                     ++anim.iterator;
                 } else {
                     Uint32 nowMs = SDL_GetTicks();

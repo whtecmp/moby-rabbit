@@ -24,6 +24,10 @@ class Level : public Actor {
     int thickness;
     // Each rect is one line; rect.y is the top surface actors stand on.
     vector<SDL_Rect> lines;
+
+    // Where a bug patrols: x range and the y of the surface it walks on.
+    struct BugSpawn { double minX; double maxX; double feetY; };
+    vector<BugSpawn> bugs;
 };
 
 
