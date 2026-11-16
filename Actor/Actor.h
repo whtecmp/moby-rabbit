@@ -52,6 +52,8 @@ public:
     Vector velocity;
     Vector acceleration;
 
+    // When false the actor is skipped completely (no movement, logic or drawing).
+    bool active;
     // When false the actor is not drawn (its logic still runs).
     bool visible;
     // Pausable actors stand still while State::paused is set.

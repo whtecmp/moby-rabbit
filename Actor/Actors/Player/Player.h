@@ -30,6 +30,8 @@ class Player : public Actor {
     // Loses one hit point (ignored while briefly invulnerable afterwards).
     void takeHit();
     void drawHealth() const;
+    // Puts the player back at the start with full health.
+    void reset();
     void updateCamera(int worldWidth);
     void setAnimation(const string& name);
 

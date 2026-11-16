@@ -66,6 +66,8 @@ class State {
     SDL_JoystickID controllerId;
 
     function<int(SDL_Event *)> pollEvent;
+    // Drawn on top of everything each frame (menus, HUD).
+    function<void()> onOverlay;
 
     bool deferActorMutations;
     vector<pair<string, Actor*>> pendingAddActors;

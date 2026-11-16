@@ -2,9 +2,9 @@
 #include <SDL2/SDL.h>
 #include "Error.h"
 #include "Actor/Actors/Level/Level.h"
-#include "Actor/Actors/Bug/Bug.h"
 #include "Actor/Actors/Player/Player.h"
 #include "SDL_Environment/SDL_Environment.h"
+#include "Game/Game.h"
 #include "State/State.h"
 #include "Vector/Vector.h"
 
@@ -39,14 +39,12 @@ int main()
         return 1;
     }
 
-    int bugNumber = 0;
-    for (const Level::BugSpawn& spawn : level->bugs) {
-        new Bug("bug_" + to_string(bugNumber++), spawn.minX, spawn.maxX, spawn.feetY, player, err);
-        if (err.status == failure) {
-            cerr << "Failed to create bug: " << err.message << endl;
-            State::destroy();
-            return 1;
-        }
+    Game* game = new Game(level, player, err);
+    if (err.status == failure) {
+        delete game;
+        cerr << "Failed to create game: " << err.message << endl;
+        State::destroy();
+        return 1;
     }
 
     player->controlMode = state.controlMode;

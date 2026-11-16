@@ -206,6 +206,9 @@ void State::startEventLoop() {
 
         for (pair<string, Actor*> nameActor : actors) {
             Actor* actor = nameActor.second;
+            if (!actor->active) {
+                continue;
+            }
 
             const bool frozen = paused && actor->pausable;
             if (!frozen) {
@@ -265,6 +268,9 @@ void State::startEventLoop() {
             }
         }
 
+        if (onOverlay != nullptr) {
+            onOverlay();
+        }
         env->renderer->present();
         collisionHandler();
         applyDeferredActors();

@@ -1,5 +1,6 @@
 #include "Level.h"
 #include "State/State.h"
+#include "Save/Save.h"
 using namespace std;
 
 Level::Level() : Actor(), number(1), width(4800),
@@ -18,12 +19,28 @@ Level::Level() : Actor(), number(1), width(4800),
             SDL_RenderFillRect(renderer, &r);
         }
     };
+    onPausedRender = onRender;
 }
 
 Level::~Level() = default;
 
 void Level::load(int levelNumber) {
     number = levelNumber;
+    static const SDL_Color palettes[maxLevel][2] = {
+        {{0, 70, 30, 255}, {255, 255, 255, 255}},
+        {{20, 40, 90, 255}, {200, 230, 255, 255}},
+        {{90, 30, 30, 255}, {255, 220, 150, 255}},
+        {{60, 20, 90, 255}, {255, 180, 255, 255}},
+        {{110, 80, 20, 255}, {255, 255, 200, 255}},
+        {{10, 80, 90, 255}, {180, 255, 240, 255}},
+        {{40, 40, 40, 255}, {255, 120, 60, 255}},
+        {{90, 90, 20, 255}, {30, 20, 0, 255}},
+        {{120, 40, 80, 255}, {255, 255, 255, 255}},
+        {{15, 15, 45, 255}, {160, 255, 160, 255}},
+    };
+    const int paletteIndex = (levelNumber - 1 + maxLevel) % maxLevel;
+    backgroundColor = palettes[paletteIndex][0];
+    lineColor = palettes[paletteIndex][1];
     lines.clear();
     bugs.clear();
     // Ground first, then platforms to run along and jump between.

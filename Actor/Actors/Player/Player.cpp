@@ -100,6 +100,21 @@ void Player::takeHit() {
     onGround = false;
 }
 
+void Player::reset() {
+    position = startPosition;
+    velocity = Vector(0, 0);
+    leftHeld = false;
+    rightHeld = false;
+    onGround = false;
+    facingRight = true;
+    attacking = false;
+    hp = maxHp;
+    invulnerableUntilMs = 0;
+    visible = true;
+    prevFeetY = position[1] + feetOffset;
+    State::get().view->position[0] = 0;
+}
+
 void Player::drawHealth() const {
     State& state = State::get();
     SDL_Renderer* renderer = state.env->renderer->renderer;
@@ -297,9 +312,14 @@ Player::Player(const string& name, const Vector& startPosition, Level* level, Er
     eventActions[Actor::controllerButtonDown][SDL_CONTROLLER_BUTTON_X] = gamepadOnly(attack);
     eventActions[Actor::controllerButtonDown][SDL_CONTROLLER_BUTTON_B] = gamepadOnly(attack);
 
+    pausable = true;
     onRender = [this](Actor& actor) {
         static_cast<void>(actor);
         update();
+    };
+    onPausedRender = [this](Actor& actor) {
+        static_cast<void>(actor);
+        drawHealth();
     };
 
     if (!state.registerActor(name, this, err)) {
