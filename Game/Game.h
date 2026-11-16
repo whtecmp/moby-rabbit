@@ -32,6 +32,7 @@ class Game : public Actor {
     void toggleControls();
     void toggleFullscreen();
     bool fullscreen() const;
+    void saveSettings() const;
 
     vector<MenuItem> menuItems() const;
     void moveSelection(int step);

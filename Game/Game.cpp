@@ -15,7 +15,15 @@ Game::Game(Level* level, Player* player, Error& err)
     : Actor(), level(level), player(player), mode(mainMenu), selected(0), unlocked(1),
       currentLevel(1), bugCounter(0), bugNames(), savePath("save.txt") {
     State& state = State::get();
-    unlocked = loadUnlockedLevel(savePath);
+    const SaveData saved = loadSave(savePath);
+    unlocked = saved.unlockedLevel;
+    // Restore the last display and control settings.
+    if (saved.fullscreen && !fullscreen()) {
+        SDL_SetWindowFullscreen(state.env->window->window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+    }
+    if (saved.gamepad && state.controlMode != GAMEPAD) {
+        toggleControls();  // stays on keyboard when no controller is connected
+    }
 
     auto bind = [this](Actor::EventGroup group, Uint32 key, void (Game::*action)()) {
         eventActions[group][key] = [this, action](Actor& actor, const SDL_Event& event) {
@@ -95,7 +103,7 @@ void Game::update() {
 void Game::finishLevel() {
     if (currentLevel >= unlocked && unlocked < maxLevel) {
         unlocked = currentLevel + 1;
-        saveUnlockedLevel(savePath, unlocked);
+        saveSettings();
     }
     if (currentLevel >= maxLevel) {
         showMainMenu();
@@ -156,6 +164,16 @@ bool Game::fullscreen() const {
 void Game::toggleFullscreen() {
     SDL_Window* window = State::get().env->window->window;
     SDL_SetWindowFullscreen(window, fullscreen() ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP);
+    saveSettings();
+}
+
+// Writes the current display and control settings (and unlocked level) to the save file.
+void Game::saveSettings() const {
+    SaveData data;
+    data.unlockedLevel = unlocked;
+    data.fullscreen = fullscreen();
+    data.gamepad = State::get().controlMode == GAMEPAD;
+    writeSave(savePath, data);
 }
 
 // Switches the player between keyboard and gamepad control.
@@ -175,6 +193,7 @@ void Game::toggleControls() {
     player->controllerId = state.controllerId;
     player->leftHeld = false;
     player->rightHeld = false;
+    saveSettings();
 }
 
 void Game::pause() {
