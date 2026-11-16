@@ -1,10 +1,13 @@
 #include "Level.h"
 #include "State/State.h"
 #include "Save/Save.h"
+#include <algorithm>
+#include <cmath>
 using namespace std;
 
 Level::Level() : Actor(), number(1), width(4800),
-                 backgroundColor{0, 70, 30, 255}, lineColor{255, 255, 255, 255}, thickness(4), lines() {
+                 backgroundColor{0, 70, 30, 255}, lineColor{255, 255, 255, 255},
+                 goalX(0), goalY(0), goalRadius(50), thickness(4), lines() {
     load(1);
 
     onRender = [this](Actor& actor) {
@@ -18,11 +21,28 @@ Level::Level() : Actor(), number(1), width(4800),
             r.y -= static_cast<int>(state.view->position[1]);
             SDL_RenderFillRect(renderer, &r);
         }
+        // Goal: a solid yellow circle drawn as horizontal slices.
+        state.env->renderer->setDrawColor(255, 220, 0, 255);
+        const int cx = goalX - static_cast<int>(state.view->position[0]);
+        const int cy = goalY - static_cast<int>(state.view->position[1]);
+        for (int dy = -goalRadius; dy <= goalRadius; ++dy) {
+            const int half = static_cast<int>(sqrt(static_cast<double>(goalRadius * goalRadius - dy * dy)));
+            SDL_RenderDrawLine(renderer, cx - half, cy + dy, cx + half, cy + dy);
+        }
     };
     onPausedRender = onRender;
 }
 
 Level::~Level() = default;
+
+bool Level::goalTouches(const SDL_Rect& box) const {
+    // Closest point of the box to the circle centre.
+    const int nearestX = max(box.x, min(goalX, box.x + box.w));
+    const int nearestY = max(box.y, min(goalY, box.y + box.h));
+    const int dx = goalX - nearestX;
+    const int dy = goalY - nearestY;
+    return dx * dx + dy * dy <= goalRadius * goalRadius;
+}
 
 void Level::load(int levelNumber) {
     number = levelNumber;
@@ -41,6 +61,8 @@ void Level::load(int levelNumber) {
     const int paletteIndex = (levelNumber - 1 + maxLevel) % maxLevel;
     backgroundColor = palettes[paletteIndex][0];
     lineColor = palettes[paletteIndex][1];
+    goalX = width - 150;
+    goalY = 900 - goalRadius - 10;
     lines.clear();
     bugs.clear();
     // Ground first, then platforms to run along and jump between.

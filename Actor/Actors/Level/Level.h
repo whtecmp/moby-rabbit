@@ -19,6 +19,11 @@ class Level : public Actor {
     int width;
     SDL_Color backgroundColor;
     SDL_Color lineColor;
+    // Solid yellow circle at the far right end; touching it finishes the level.
+    int goalX;
+    int goalY;
+    int goalRadius;
+    bool goalTouches(const SDL_Rect& box) const;
 
     // Thickness of the drawn lines in pixels.
     int thickness;
