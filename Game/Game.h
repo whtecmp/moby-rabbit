@@ -13,7 +13,7 @@ using namespace std;
 // text that cannot be selected is black.
 class Game : public Actor {
     public:
-    enum Mode { mainMenu, levelSelect, playing };
+    enum Mode { mainMenu, levelSelect, playing, paused };
 
     struct MenuItem {
         string text;
@@ -27,6 +27,11 @@ class Game : public Actor {
     void startLevel(int number);
     void showMainMenu();
     void showLevelSelect();
+    void pause();
+    void resume();
+    void toggleControls();
+    void toggleFullscreen();
+    bool fullscreen() const;
 
     vector<MenuItem> menuItems() const;
     void moveSelection(int step);
