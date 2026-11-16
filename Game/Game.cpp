@@ -40,6 +40,10 @@ Game::Game(Level* level, Player* player, Error& err)
     bind(Actor::keyDown, SDLK_ESCAPE, &Game::back);
     bind(Actor::controllerButtonDown, SDL_CONTROLLER_BUTTON_B, &Game::back);
 
+    onRender = [this](Actor& actor) {
+        static_cast<void>(actor);
+        update();
+    };
     state.onOverlay = [this]() { drawOverlay(); };
     showMainMenu();
     state.registerActor("game", this, err);
@@ -76,6 +80,25 @@ void Game::startLevel(int number) {
     state.paused = false;
     level->active = true;
     player->active = true;
+}
+
+void Game::update() {
+    if (mode == playing && !State::get().paused && level->goalTouches(player->bodyBox())) {
+        finishLevel();
+    }
+}
+
+// Unlocks the next level in the save file and moves on to it.
+void Game::finishLevel() {
+    if (currentLevel >= unlocked && unlocked < maxLevel) {
+        unlocked = currentLevel + 1;
+        saveUnlockedLevel(savePath, unlocked);
+    }
+    if (currentLevel >= maxLevel) {
+        showMainMenu();
+        return;
+    }
+    startLevel(currentLevel + 1);
 }
 
 void Game::showMainMenu() {

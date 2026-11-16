@@ -33,6 +33,9 @@ class Game : public Actor {
     void activate();
     void back();
     void drawOverlay() const;
+    // Called every frame; finishes the level when the player reaches the goal.
+    void update();
+    void finishLevel();
 
     Level* level;
     Player* player;
