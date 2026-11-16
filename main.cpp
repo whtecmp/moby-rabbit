@@ -30,7 +30,7 @@ int main()
         return 1;
     }
 
-    Player* player = new Player("player", Vector(960, 300), level, err);
+    Player* player = new Player("player", Vector(200, 300), level, err);
     if (err.status == failure) {
         delete player;
         cerr << "Failed to create player: " << err.message << endl;

@@ -72,6 +72,7 @@ State::State(const Config& config, Error& err)
       actors(),
       animationCleanupEveryXFrames(1000),
       view(nullptr),
+      background{0, 70, 30, 255},
       fps(config.fps),
       controlMode(config.controlMode),
       controller(nullptr),
@@ -199,7 +200,7 @@ void State::startEventLoop() {
         }
         err = Error::Success();
 
-        env->renderer->setDrawColor(0, 70, 30, 255);
+        env->renderer->setDrawColor(background.r, background.g, background.b, 255);
         env->renderer->clear();
 
         for (pair<string, Actor*> nameActor : actors) {
