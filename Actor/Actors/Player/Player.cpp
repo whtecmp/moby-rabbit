@@ -262,7 +262,8 @@ Player::Player(const string& name, const Vector& startPosition, Level* level, Er
     // Actions are tied to the controller that is plugged in; keyboard always works.
     auto gamepadOnly = [this](const Actor::eventAction& action) {
         return [this, action](Actor& actor, const SDL_Event& event) {
-            if (controllerId == static_cast<SDL_JoystickID>(-1) || controllerId != event.cbutton.which) {
+            if (State::get().controlMode != GAMEPAD || controllerId == static_cast<SDL_JoystickID>(-1) ||
+                controllerId != event.cbutton.which) {
                 return;
             }
             action(actor, event);
@@ -275,31 +276,46 @@ Player::Player(const string& name, const Vector& startPosition, Level* level, Er
             *flag = value;
         };
     };
+    // Keyboard actions only count while keyboard control is selected (releases always count).
+    auto keyboardOnly = [](const Actor::eventAction& action) -> Actor::eventAction {
+        return [action](Actor& actor, const SDL_Event& event) {
+            if (State::get().controlMode != KEYBOARD) {
+                return;
+            }
+            action(actor, event);
+        };
+    };
     Actor::eventAction jump = [this](Actor& actor, const SDL_Event& event) {
         static_cast<void>(actor);
         static_cast<void>(event);
+        if (!this->active || State::get().paused) {
+            return;
+        }
         startJump();
     };
     Actor::eventAction attack = [this](Actor& actor, const SDL_Event& event) {
         static_cast<void>(actor);
         static_cast<void>(event);
+        if (!this->active || State::get().paused) {
+            return;
+        }
         startAttack();
     };
 
     // Keyboard
     for (Uint32 key : {static_cast<Uint32>(SDLK_LEFT), static_cast<Uint32>(SDLK_a)}) {
-        eventActions[Actor::keyDown][key] = setHeld(&leftHeld, true);
+        eventActions[Actor::keyDown][key] = keyboardOnly(setHeld(&leftHeld, true));
         eventActions[Actor::keyUp][key] = setHeld(&leftHeld, false);
     }
     for (Uint32 key : {static_cast<Uint32>(SDLK_RIGHT), static_cast<Uint32>(SDLK_d)}) {
-        eventActions[Actor::keyDown][key] = setHeld(&rightHeld, true);
+        eventActions[Actor::keyDown][key] = keyboardOnly(setHeld(&rightHeld, true));
         eventActions[Actor::keyUp][key] = setHeld(&rightHeld, false);
     }
     for (Uint32 key : {static_cast<Uint32>(SDLK_SPACE), static_cast<Uint32>(SDLK_UP), static_cast<Uint32>(SDLK_w)}) {
-        eventActions[Actor::keyDown][key] = jump;
+        eventActions[Actor::keyDown][key] = keyboardOnly(jump);
     }
     for (Uint32 key : {static_cast<Uint32>(SDLK_x), static_cast<Uint32>(SDLK_z)}) {
-        eventActions[Actor::keyDown][key] = attack;
+        eventActions[Actor::keyDown][key] = keyboardOnly(attack);
     }
 
     // Gamepad

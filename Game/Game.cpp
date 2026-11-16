@@ -38,12 +38,15 @@ Game::Game(Level* level, Player* player, Error& err)
     bind(Actor::keyDown, SDLK_KP_ENTER, &Game::activate);
     bind(Actor::controllerButtonDown, SDL_CONTROLLER_BUTTON_A, &Game::activate);
     bind(Actor::keyDown, SDLK_ESCAPE, &Game::back);
+    bind(Actor::controllerButtonDown, SDL_CONTROLLER_BUTTON_START, &Game::back);
     bind(Actor::controllerButtonDown, SDL_CONTROLLER_BUTTON_B, &Game::back);
 
     onRender = [this](Actor& actor) {
         static_cast<void>(actor);
         update();
     };
+    // Menus are laid out for 1920x1080 whatever the window or screen size is.
+    SDL_RenderSetLogicalSize(state.env->renderer->renderer, state.view->width, state.view->height);
     state.onOverlay = [this]() { drawOverlay(); };
     showMainMenu();
     state.registerActor("game", this, err);
@@ -112,6 +115,7 @@ void Game::showMainMenu() {
     player->active = false;
     state.background = menuBackground;
     mode = mainMenu;
+    state.paused = false;
     selected = 0;
 }
 
@@ -128,6 +132,13 @@ vector<Game::MenuItem> Game::menuItems() const {
         items.push_back({"Continue", true});
         items.push_back({"Choose a Level", true});
         items.push_back({"Exit", true});
+    } else if (mode == paused) {
+        items.push_back({"Resume Game", true});
+        const bool gamepad = State::get().controlMode == GAMEPAD;
+        items.push_back({string("Choose Controls: ") + (gamepad ? "Gamepad" : "Keyboard"), true});
+        items.push_back({string("Display: ") + (fullscreen() ? "Borderless Fullscreen" : "Windowed"), true});
+        items.push_back({"Go to Main Menu", true});
+        items.push_back({"Exit Game", true});
     } else if (mode == levelSelect) {
         for (int i = 1; i <= maxLevel; ++i) {
             items.push_back({"Level " + to_string(i), i <= unlocked});
@@ -135,6 +146,52 @@ vector<Game::MenuItem> Game::menuItems() const {
         items.push_back({"Back", true});
     }
     return items;
+}
+
+bool Game::fullscreen() const {
+    SDL_Window* window = State::get().env->window->window;
+    return (SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN_DESKTOP) != 0;
+}
+
+void Game::toggleFullscreen() {
+    SDL_Window* window = State::get().env->window->window;
+    SDL_SetWindowFullscreen(window, fullscreen() ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP);
+}
+
+// Switches the player between keyboard and gamepad control.
+void Game::toggleControls() {
+    State& state = State::get();
+    if (state.controlMode == KEYBOARD) {
+        if (state.controller == nullptr) {
+            cerr << "No game controller found; staying on keyboard." << endl;
+            return;
+        }
+        state.controlMode = GAMEPAD;
+        state.controllerId = SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(state.controller));
+    } else {
+        state.controlMode = KEYBOARD;
+    }
+    player->controlMode = state.controlMode;
+    player->controllerId = state.controllerId;
+    player->leftHeld = false;
+    player->rightHeld = false;
+}
+
+void Game::pause() {
+    if (mode != playing) {
+        return;
+    }
+    mode = paused;
+    selected = 0;
+    State::get().paused = true;
+}
+
+void Game::resume() {
+    if (mode != paused) {
+        return;
+    }
+    mode = playing;
+    State::get().paused = false;
 }
 
 void Game::moveSelection(int step) {
@@ -167,6 +224,19 @@ void Game::activate() {
         } else {
             State::get().running = false;
         }
+    } else if (mode == paused) {
+        if (selected == 0) {
+            resume();
+        } else if (selected == 1) {
+            toggleControls();
+        } else if (selected == 2) {
+            toggleFullscreen();
+        } else if (selected == 3) {
+            State::get().paused = false;
+            showMainMenu();
+        } else {
+            State::get().running = false;
+        }
     } else if (mode == levelSelect) {
         if (selected < maxLevel) {
             startLevel(selected + 1);
@@ -177,7 +247,11 @@ void Game::activate() {
 }
 
 void Game::back() {
-    if (mode == levelSelect) {
+    if (mode == playing) {
+        pause();
+    } else if (mode == paused) {
+        resume();
+    } else if (mode == levelSelect) {
         showMainMenu();
     }
 }
@@ -189,6 +263,26 @@ void Game::drawOverlay() const {
     State& state = State::get();
     SDL_Renderer* renderer = state.env->renderer->renderer;
     const int centerX = state.view->width / 2;
+    if (mode == paused) {
+        // Solid black box with the options as white text.
+        const int boxSize = 760;
+        SDL_Rect box{centerX - boxSize / 2, (state.view->height - boxSize) / 2, boxSize, boxSize};
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_RenderFillRect(renderer, &box);
+        const int scale = 4;
+        const int rowHeight = textHeight(scale) + 36;
+        const vector<MenuItem> items = menuItems();
+        const int top = box.y + 120;
+        drawTextCentered(renderer, "Paused", centerX, box.y + 40, 6, white);
+        for (size_t i = 0; i < items.size(); ++i) {
+            const int y = top + static_cast<int>(i) * rowHeight;
+            drawTextCentered(renderer, items[i].text, centerX, y, scale, white);
+            if (static_cast<int>(i) == selected) {
+                drawText(renderer, ">", box.x + 40, y, scale, white);
+            }
+        }
+        return;
+    }
     drawTextCentered(renderer, "Moby Rabbit", centerX, 120, 12, black);
     const vector<MenuItem> items = menuItems();
     const int scale = 5;
